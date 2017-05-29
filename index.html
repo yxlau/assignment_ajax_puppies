@@ -16,8 +16,6 @@
   <main>
   <h1>The AJAX Puppy Shelter</h1>
    <h2>Register a new puppy</h2> 
-
-
    <form id="puppy-registration-form" action="https://ajax-puppies.herokuapp.com/puppies.json">
     <div>
        <label for="name">Name</label>
@@ -32,6 +30,19 @@
        <div>
          <input type="submit" value="Register Puppy">
        </div>
+   </form>
+
+   <h2>Register a bunch of puppies</h2>
+   <form action="https://ajax-puppies.herokuapp.com/puppies.json" id="puppy-upload-form">
+   <div>
+   <p>
+     <label for="puppy-list">Select a .csv file to upload:</label>
+   </p>
+      <input type="file" name="puppy-list" accept=".csv">
+      </div>
+      <div>
+      <input type="submit" value="Upload File">
+      </div>
    </form>
 
    <h2>Our Puppies:</h2>

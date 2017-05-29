@@ -14,8 +14,8 @@ var Puppies = (function($) {
     _$breedList = $('#breed-list');
     _$statusBar = $('#status-bar');
     _setUpListeners();
-    _setUpBreedList();
-    _refreshList();
+    // _setUpBreedList();
+    // _getPuppyList();
   }
 
   var _setUpBreedList = function() {
@@ -39,10 +39,11 @@ var Puppies = (function($) {
   var _setUpListeners = function() {
     $('#refresh-puppies-list').on('click', function(e) {
       e.preventDefault();
-      _refreshList();
+      _getPuppyList();
     });
 
     $('#puppy-registration-form').on('submit', _submitAsynchronously);
+    $('#puppy-upload-form').on('submit', _uploadPuppyList);
 
     _ajaxFeedback();
   }
@@ -51,6 +52,64 @@ var Puppies = (function($) {
     _ajaxStart();
     _ajaxSuccess();
     _ajaxFailure();
+  }
+
+  var _uploadPuppyList = function(e) {
+    e.preventDefault();
+    var $form = $(e.target);
+    var file = $form.find('input[name=puppy-list]')[0].files[0];
+
+    var promise = _loadFile(file);
+    promise.then(_batchCreatePuppies);
+
+  }
+
+  var _loadFile = function(file) {
+    var reader = new FileReader();
+    var deferred = $.Deferred();
+
+    // to read the user's uploade file, we will use FileReader()'s readAsText method.
+    // because it is an asynchronous method, we add a listener, `onload` for when the file has finished its upload, 
+    // with instructions on what to do with its contents in the callback.
+    reader.onload = function(e) {
+      deferred.resolve(e.target.result);
+    };
+
+    reader.readAsText(file);
+    return deferred.promise();
+  }
+
+  var _batchCreatePuppies = function(content) {
+    var data = _parseCSV(content);
+    var url = $('#puppy-upload-form').attr('action');
+    var promises = [];
+    $.each(data, function(i, pup) {
+      promises.push(_performAjaxFormSubmission(url,
+        JSON.stringify({
+          name: pup.name,
+          breed_id: pup.breed_id
+        })
+      ));
+    });
+    $.when.apply(null, promises);
+  }
+
+  var _parseCSV = function(contents) {
+    //  ["Pupper1,119,", "Pupper2,119,", "Pupper3,119,", ""]
+    // --> {name: val[0], breed_id: val[1]}
+    var lines = contents.split(/\n/);
+    lines = lines.filter(function(n) {
+      return n !== "";
+    });
+    var data = [];
+    $.each(lines, function(i, val) {
+      var entry = val.split(',');
+      data.push({
+        name: entry[0],
+        breed_id: entry[1]
+      });
+    });
+    return data;
   }
 
   var _ajaxStart = function() {
@@ -68,7 +127,7 @@ var Puppies = (function($) {
   var _ajaxSuccess = function() {
     $(document).ajaxSuccess(function() {
       _waiting = false;
-      var delay = _$statusBar.text('Finished!').attr('class', 'success').delay(2000).fadeOut(300).promise();
+      var delay = _$statusBar.text('Finished!').attr('class', 'success').delay(2000).fadeOut().promise();
       delay.done(function() {
         _$statusBar.removeClass('success');
       })
@@ -107,19 +166,22 @@ var Puppies = (function($) {
       return;
     }
 
-    $.ajax({
-      url: $form.attr('action'),
+    _performAjaxFormSubmission($form.attr('action'), formData);
+
+  }
+
+  var _performAjaxFormSubmission = function(url, data) {
+    return $.ajax({
+      url: url,
       type: 'POST',
-      data: formData,
+      data: data,
       dataType: 'json',
       contentType: 'application/json',
       success: function(data) {
-        console.log(data);
         _waiting = false;
         _addNewPuppyToPuppyList(data);
       },
       error: function(xhr, status, errorThrown) {
-        console.log(errorThrown);
         _waiting = false;
       }
     });
@@ -137,7 +199,7 @@ var Puppies = (function($) {
     _$puppyList.prepend($item);
   }
 
-  var _refreshList = function() {
+  var _getPuppyList = function() {
     $.ajax({
       url: "https://ajax-puppies.herokuapp.com/puppies.json",
       type: 'GET',
