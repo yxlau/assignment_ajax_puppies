@@ -3,19 +3,24 @@ var Puppies = (function($) {
   var _$puppyList;
   var _$breedList;
   var _$statusBar;
+  var _$uploadStatus;
   var _breeds;
   var _fetchBreeds;
-  var _submittedBreed;
   var _waiting;
+  var _uploadCount;
+  var _$puppyUploadForm;
 
   var init = function() {
     _waiting = false;
+    _uploadCount = 0;
     _$puppyList = $('#puppy-list');
     _$breedList = $('#breed-list');
     _$statusBar = $('#status-bar');
+    _$uploadStatus = $('#upload-status');
+    _$puppyUploadForm = $('#puppy-upload-form');
     _setUpListeners();
-    // _setUpBreedList();
-    // _getPuppyList();
+    _setUpBreedList();
+    _getPuppyList();
   }
 
   var _setUpBreedList = function() {
@@ -43,7 +48,7 @@ var Puppies = (function($) {
     });
 
     $('#puppy-registration-form').on('submit', _submitAsynchronously);
-    $('#puppy-upload-form').on('submit', _uploadPuppyList);
+    _$puppyUploadForm.on('submit', _uploadPuppyList);
 
     _ajaxFeedback();
   }
@@ -58,30 +63,29 @@ var Puppies = (function($) {
     e.preventDefault();
     var $form = $(e.target);
     var file = $form.find('input[name=puppy-list]')[0].files[0];
-
     var promise = _loadFile(file);
     promise.then(_batchCreatePuppies);
 
   }
 
   var _loadFile = function(file) {
-    var reader = new FileReader();
-    var deferred = $.Deferred();
-
     // to read the user's uploade file, we will use FileReader()'s readAsText method.
     // because it is an asynchronous method, we add a listener, `onload` for when the file has finished its upload, 
     // with instructions on what to do with its contents in the callback.
+
+    var reader = new FileReader();
+    var deferred = $.Deferred();
     reader.onload = function(e) {
       deferred.resolve(e.target.result);
     };
-
     reader.readAsText(file);
     return deferred.promise();
   }
 
   var _batchCreatePuppies = function(content) {
     var data = _parseCSV(content);
-    var url = $('#puppy-upload-form').attr('action');
+    _showUploadStatus(data.length);
+    var url = _$puppyUploadForm.attr('action');
     var promises = [];
     $.each(data, function(i, pup) {
       promises.push(_performAjaxFormSubmission(url,
@@ -91,12 +95,22 @@ var Puppies = (function($) {
         })
       ));
     });
-    $.when.apply(null, promises);
+    $.when.apply(null, promises).done(
+      function() {
+        if (_uploadCount < data.length) {
+          _$uploadStatus.append('Puppies not uploaded:' + (data.length - _uploadCount));
+        }
+        _uploadCount = 0;
+      });
+  }
+
+  var _showUploadStatus = function(count) {
+    _$uploadStatus.text('Puppies uploaded: ').append($('<span>').addClass('count').text(0)).append('/' + count).fadeIn();
   }
 
   var _parseCSV = function(contents) {
-    //  ["Pupper1,119,", "Pupper2,119,", "Pupper3,119,", ""]
-    // --> {name: val[0], breed_id: val[1]}
+    //  contents = ["Pupper1,119,", "Pupper2,119,", "Pupper3,119,", ""]
+    // turn it into --> {name: val[0], breed_id: val[1]}
     var lines = contents.split(/\n/);
     lines = lines.filter(function(n) {
       return n !== "";
@@ -178,8 +192,11 @@ var Puppies = (function($) {
       dataType: 'json',
       contentType: 'application/json',
       success: function(data) {
+        console.log('creation done');
         _waiting = false;
         _addNewPuppyToPuppyList(data);
+        _uploadCount++;
+        _$uploadStatus.find($('.count')).text(_uploadCount);
       },
       error: function(xhr, status, errorThrown) {
         _waiting = false;
@@ -189,13 +206,14 @@ var Puppies = (function($) {
 
   var _addNewPuppyToPuppyList = function(data) {
     var breed;
-    $.each(breed, function(i, val) {
-      if (val.id === data.id) {
+    $.each(_breeds, function(i, val) {
+      if (val.id === data.breed_id) {
         breed = val.name;
         return false;
       }
     });
-    var $item = _buildPuppyEntry(data.name, breed, data.created_at, data.url);
+    var url = 'https://ajax-puppies.herokuapp.com/puppies/' + data.id + '.json';
+    var $item = _buildPuppyEntry(data.name, breed, data.created_at, url);
     _$puppyList.prepend($item);
   }
 
@@ -216,7 +234,6 @@ var Puppies = (function($) {
       e.preventDefault();
       var $item = $(e.target);
       var url = $item.attr('href');
-
       $.ajax({
         type: 'DELETE',
         url: url,

@@ -36,3 +36,8 @@ div {
 #status-bar.success {
   background: #deffc9;
 }
+
+#upload-status {
+  display:none;
+  height:20px;
+}
