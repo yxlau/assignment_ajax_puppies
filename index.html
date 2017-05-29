@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The AJAX Puppy Shelter</title>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+ <script src="assets/script.js"></script>
+<script>
+  $(document).ready(function(){
+   Puppies.init();
+  })
+</script>
+</head>
+<body>
+<div id="status-bar">test</div>
+  <main>
+  <h1>The AJAX Puppy Shelter</h1>
+   <h2>Register a new puppy</h2> 
+   <form id="puppy-registration-form" action="https://ajax-puppies.herokuapp.com/puppies.json">
+    <div>
+       <label for="name">Name</label>
+        <input type="text" name="name">
+    </div>
+       <div>
+        <label for="breed">Breed</label>
+         <select name="breed_id" id="breed-list">
+           <option disabled selected value>- select breed -</option>
+         </select>
+       </div>
+       <div>
+         <input type="submit" value="Register Puppy">
+       </div>
+   </form>
+
+   <h2>Our Puppies:</h2>
+   <a href="#" id="refresh-puppies-list">Refresh puppies list</a>
+   <ul id="puppy-list">
+   </ul>
+  </main>
+</body>
+</html>
