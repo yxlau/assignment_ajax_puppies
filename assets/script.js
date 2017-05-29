@@ -6,7 +6,6 @@ var Puppies = (function($) {
   var _breeds;
   var _fetchBreeds;
   var _submittedBreed;
-  var _promise;
   var _waiting;
 
   var init = function() {
@@ -140,18 +139,38 @@ var Puppies = (function($) {
 
   var _refreshList = function() {
     $.ajax({
-      url: "https://ajax-puppies.herokuapp.com/puppes.json",
+      url: "https://ajax-puppies.herokuapp.com/puppies.json",
       type: 'GET',
       dataType: 'json',
       success: function(data) {
         _repopulatePuppyList(data);
+        _listenForAdoptions();
       }
-    })
+    });
+  }
+
+  var _listenForAdoptions = function() {
+    $('.adopt').on('click', function(e) {
+      e.preventDefault();
+      var $item = $(e.target);
+      var url = $item.attr('href');
+
+      $.ajax({
+        type: 'DELETE',
+        url: url,
+        success: function(data) {
+          $item.parent('li').remove();
+        },
+      })
+    });
   }
 
   var _buildPuppyEntry = function(name, breed, date, url) {
     var name = $('<b>').text(name);
-    var $link = $('<a>').attr('href', url).text('adopt');
+    var $link = $('<a>').attr({
+      href: url,
+      class: 'adopt'
+    }).text('adopt');
     var details = $('<span>').text(
       ' (' + breed + ') ' + 'created at ' + new Date(date).toDateString() + ' -- ');
     return $('<li>').append(name).append(details).append($link);
@@ -164,6 +183,7 @@ var Puppies = (function($) {
       _$puppyList.append($item);
     });
   }
+
   return {
     init: init,
   }
