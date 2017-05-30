@@ -126,7 +126,7 @@ var Puppies = (function($) {
     return data;
   }
 
-  var _ajaxStart = function() {
+  var _ajaxStart = function(setWaiting) {
     _waiting = true;
     $(document).ajaxStart(function() {
       _$statusBar.text('Waiting...').fadeIn();
